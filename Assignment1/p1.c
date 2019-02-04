@@ -27,7 +27,7 @@ void obtainOperand(int operator, int *operand){
 
 int main(){
 
-    int operator = 1, operand = 0, accumulator = 0;
+    int operator = 1, operand = 0, accumulator = 0, temp;
 
     while(operator != 0){
         //getting command
@@ -57,11 +57,19 @@ int main(){
                 break;
 
             case 6:
-                accumulator /= operand;
+                if(operand != 0){
+                    temp = accumulator%operand;
+                    accumulator /= operand;
+                    if(temp < 0) accumulator -= 1;
+                }
                 break;
 
             case 7:
-                accumulator %= operand;
+                if(operand != 0){
+                    temp = accumulator%operand;
+                    if(temp < 0) temp += operand;
+                    accumulator = temp;
+                }
                 break;
 
             case 8:
