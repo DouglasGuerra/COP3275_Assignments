@@ -5,26 +5,31 @@
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 
 int main(){
 
     int openParenthesisCount = 0;
-    int valid = 1;
-    char current;
+    int valid = 1, index = 0;
+    char *line = (char *) malloc(sizeof(char) * 255);
 
-    while((scanf("%c", &current)), current != '\n'){
-        if(current == '(') openParenthesisCount++;
-        else if(current == ')') openParenthesisCount--;
+    scanf("%s", line);
+    while(line[index] != '\n'){
+        if(line[index] == '(') openParenthesisCount++;
+        else if(line[index] == ')') openParenthesisCount--;
+        else break;
 
         if(openParenthesisCount < 0){
             valid = 0;
             break;
         }
+        index++;
     }
 
     if(openParenthesisCount != 0) valid = 0;
 
     printf("%d\n", valid);
 
+    free(line);
     return 0;
 }
