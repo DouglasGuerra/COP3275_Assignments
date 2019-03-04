@@ -18,7 +18,9 @@ void CheckPawn(int kingIndex[], int pawnIndex[], int *checkCnt){
     int pawnRow = pawnIndex[0], pawnCol = pawnIndex[1];
 
     if(pawnRow-1 == kingRow){
-        if(pawnCol-1 == kingCol || pawnCol+1 == kingCol) *checkCnt = *checkCnt + 1;
+        if(pawnCol-1 == kingCol || pawnCol+1 == kingCol){
+             *checkCnt = *checkCnt + 1;
+        }
     }
 }
 
@@ -31,9 +33,10 @@ void CheckKnight(int kingIndex[], int knightIndex[], int *checkCnt){
             *checkCnt = *checkCnt + 1;
         }
     }
-
-    if(knightCol-2 == kingCol || knightCol+2 == kingCol){
-        if(knightRow-1 == kingRow || knightRow+1 == kingRow) *checkCnt = *checkCnt + 1;
+    else if(knightCol-2 == kingCol || knightCol+2 == kingCol){
+        if(knightRow-1 == kingRow || knightRow+1 == kingRow){
+            *checkCnt = *checkCnt + 1;
+        }
     }
 }
 
@@ -111,7 +114,7 @@ void CheckHorizontallyRight(char chessBoard[][boardSize], int rowIndex, int colI
 
 int main(){
 
-    int row, col, checkCnt, kingIndex[2], chessPieceIndex[2];
+    int row, col, checkCnt=0, kingIndex[2], chessPieceIndex[2];
     char chessBoard[boardSize][boardSize], temp;
 
     // Reading in chess board
