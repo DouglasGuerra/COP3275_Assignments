@@ -1,43 +1,81 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define ChessBoardSize 8
+#define BoardSize 8
+#define Invalid -1
+#define ArraySize(array) (sizeof(array) / sizeof(array[0]))
 
 typedef struct{
     int row;
     int col;
 } ChessPieceLocation_t;
 
-// Taking in input from the user
-// Format is 8 lines with 8 characters (the board size)
-// Every line is followed by a \n except for the last line
-void ReadInChessBoard(char chessBoard[][ChessBoardSize]){
+ChessPieceLocation_t kingLocation;
+char chessBoard[BoardSize][BoardSize] = { '-' };
+
+void ReadInChessBoard(){
     int row, col;
-    char chessBoardPiece;
 
-    for(row = 0; row < ChessBoardSize; row++){
-        for(col = 0; col < ChessBoardSize; col++){
-            scanf("%c", &chessBoardPiece);
-            chessBoard[row][col] = chessBoardPiece;
-        }
-
-        if(row < (ChessBoardSize-1)){
-            scanf("%c", &chessBoardPiece);
+    for(row = 0; row < BoardSize; row++){
+        for(col = 0; col < BoardSize; col++){
+            scanf(" %c", &chessBoard[row][col]);
         }
     }
 }
 
-// Takes in the chess piece and obtains the chess pieces location in the board
-// Returns the chess piece location
-ChessPieceLocation_t GetChessPieceLocation(char chessBoard[][ChessBoardSize], char chessPiece){
+void PrintChessBoard(){
     int row, col;
-    ChessPieceLocation_t chessPieceLocation;
 
-    for(row = 0; row < ChessBoardSize; row++){
-        for(col = 0; col < ChessBoardSize; col++){
-            if(chessBoard[row][col] == chessPiece){
-                chessPieceLocation.row = row;
-                chessPieceLocation.col = col;
+    printf("\nPrinting Board: \n");
+    for(row = 0; row < BoardSize; row++){
+        for(col = 0; col < BoardSize; col++){
+            printf("%c", chessBoard[row][col]);
+        }
+        printf("\n");
+    }
+}
+
+_Bool FoundChessPiece(ChessPieceLocation_t pieceLocation, char desiredPiece){
+    if(chessBoard[pieceLocation.row][pieceLocation.col] == desiredPiece) return true;
+    else return false;
+}
+
+_Bool EmptyChessBoardCell(ChessPieceLocation_t chessPieceLocation){
+    if(chessBoard[chessPieceLocation.row][chessPieceLocation.col] == '-') return true;
+    else return false;
+}
+
+_Bool ValidChessBoardPosition(ChessPieceLocation_t chessPieceLocation){
+    _Bool validPosition = true;
+
+    if(chessPieceLocation.row < 0 || chessPieceLocation.col >= BoardSize) validPosition = false;
+    if(chessPieceLocation.col < 0 || chessPieceLocation.col >= BoardSize) validPosition = false;
+
+    return validPosition;
+}
+
+_Bool CurrentlyAtKingLocation(ChessPieceLocation_t chessPieceLocation){
+    if((chessPieceLocation.row == kingLocation.row) && (chessPieceLocation.col == kingLocation.col))
+        return true;
+    else
+        return false;
+}
+
+ChessPieceLocation_t GetChessPieceLocation(char chessPiece){
+    ChessPieceLocation_t chessPieceLocation;
+    ChessPieceLocation_t tempLocation;
+    tempLocation.row = Invalid;
+    tempLocation.col = Invalid;
+    chessPieceLocation = tempLocation;
+
+    int row, col;
+    for(row = 0; row < BoardSize; row++){
+        for(col = 0; col < BoardSize; col++){
+            tempLocation.row = row;
+            tempLocation.col = col;
+
+            if(FoundChessPiece(tempLocation, chessPiece)){
+                chessPieceLocation = tempLocation;
             }
         }
     }
@@ -45,315 +83,216 @@ ChessPieceLocation_t GetChessPieceLocation(char chessBoard[][ChessBoardSize], ch
     return chessPieceLocation;
 }
 
-// Check if a position in the chess board is valid
-_Bool ValidChessBoardPosition(int row, int col){
-    _Bool validPosition = true;
+_Bool CheckVerticallyUpFromTheKing(ChessPieceLocation_t checkLocation, const char queen, const char rook){
 
-    if(row < 0 || row >= ChessBoardSize || col < 0 || col >= ChessBoardSize){
-        // printf("Invalid Position: %d, %d\n", row, col);
-        validPosition = false;
+    if(ValidChessBoardPosition(checkLocation)){
+        if(EmptyChessBoardCell(checkLocation) || CurrentlyAtKingLocation(checkLocation)){
+            checkLocation.row -= 1;
+            return CheckVerticallyUpFromTheKing(checkLocation, queen, rook);
+        }
+        else if(FoundChessPiece(checkLocation, queen) || FoundChessPiece(checkLocation, rook)){
+            return true;
+        }
     }
 
-    return validPosition;
+    return false;
 }
 
-// Check if position is an empty cell
-_Bool EmptyChessBoardCell(char chessPiece){
-    _Bool emptyCell = false;
+_Bool CheckVerticallyDownFromTheKing(ChessPieceLocation_t checkLocation, const char queen, const char rook){
 
-    if(chessPiece == '-'){
-        emptyCell = true;
+    if(ValidChessBoardPosition(checkLocation)){
+        if(EmptyChessBoardCell(checkLocation) || CurrentlyAtKingLocation(checkLocation)){
+            checkLocation.row += 1;
+            return CheckVerticallyDownFromTheKing(checkLocation, queen, rook);
+        }
+        else if(FoundChessPiece(checkLocation, queen) || FoundChessPiece(checkLocation, rook)){
+            return true;
+        }
     }
 
-    return emptyCell;
+    return false;
 }
 
-// Check if found a chess piece that is valid
-_Bool FoundChessPiece(char currentChessPiece, char desiredChessPiece){
-    return ((currentChessPiece == desiredChessPiece) ? true : false);
+_Bool CheckHorizontallyRightFromTheKing(ChessPieceLocation_t checkLocation, const char queen, const char rook){
+
+    if(ValidChessBoardPosition(checkLocation)){
+        if(EmptyChessBoardCell(checkLocation) || CurrentlyAtKingLocation(checkLocation)){
+            checkLocation.col += 1;
+            return CheckHorizontallyRightFromTheKing(checkLocation, queen, rook);
+        }
+        else if(FoundChessPiece(checkLocation, queen) || FoundChessPiece(checkLocation, rook)){
+            return true;
+        }
+    }
+
+    return false;
 }
 
-// Checks for pieces placing the king in check that are horizontal from its position
-// Takes in the location of the king and the char notation of the queen and the rook
-// The queen and rook are the only pieces that can put threaten the king
-int CheckHorizontallyFromTheKing(ChessPieceLocation_t kingLocation, char chessBoard[][ChessBoardSize], char queen, char rook){
-    int checkKingCount = 0;
-    char currentPiece;
-    int row, col;
+_Bool CheckHorizontallyLeftFromTheKing(ChessPieceLocation_t checkLocation, const char queen, const char rook){
 
-    // Checking horizontally left
-    row = kingLocation.row;
-    col = kingLocation.col - 1;
-    while(ValidChessBoardPosition(row, col)){
-        currentPiece = chessBoard[row][col];
-        // printf("Checking horizontal left: %d, %d, %c\n", row, col, currentPiece);
-        if(FoundChessPiece(currentPiece, queen) || FoundChessPiece(currentPiece, rook)){
-            checkKingCount++;
-            break;
+    if(ValidChessBoardPosition(checkLocation)){
+        if(EmptyChessBoardCell(checkLocation) || CurrentlyAtKingLocation(checkLocation)){
+            checkLocation.col -= 1;
+            return CheckHorizontallyLeftFromTheKing(checkLocation, queen, rook);
         }
-        else if(!EmptyChessBoardCell(currentPiece)){
-            break;
+        else if(FoundChessPiece(checkLocation, queen) || FoundChessPiece(checkLocation, rook)){
+            return true;
         }
-
-        col--;
     }
 
-    // Checking horizontally right
-    col = kingLocation.col + 1;
-    while(ValidChessBoardPosition(row, col)){
-        currentPiece = chessBoard[row][col];
-        // printf("Checking horizontal right: %d, %d, %c\n", row, col, currentPiece);
-        if(FoundChessPiece(currentPiece, queen) || FoundChessPiece(currentPiece, rook)){
-            checkKingCount++;
-            break;
-        }
-        else if(!EmptyChessBoardCell(currentPiece)){
-            break;
-        }
-
-        col++;
-    }
-
-    return checkKingCount;
+    return false;
 }
 
-// Checks for pieces placing the king in check vertically from the king
-// The queen and the rook are the only pieces that can place the king in check vertically
-int CheckVerticallyFromTheKing(ChessPieceLocation_t kingLocation, char chessBoard[][ChessBoardSize], char queen, char rook){
-    int checkKingCount = 0;
-    char currentPiece;
-    int row, col;
+_Bool CheckDiagonallyUpLeftFromTheKing(ChessPieceLocation_t checkLocation, const char queen, const char bishop){
 
-    // Checking vertically up
-    row = kingLocation.row - 1;
-    col = kingLocation.col;
-    while(ValidChessBoardPosition(row, col)){
-        currentPiece = chessBoard[row][col];
-        // printf("Checking vertically up: %d, %d, %c\n", row, col, currentPiece);
-        if(FoundChessPiece(currentPiece, queen) || FoundChessPiece(currentPiece, rook)){
-            checkKingCount++;
-            break;
+    if(ValidChessBoardPosition(checkLocation)){
+        if(EmptyChessBoardCell(checkLocation) || CurrentlyAtKingLocation(checkLocation)){
+            checkLocation.row -= 1;
+            checkLocation.col -= 1;
+            return CheckDiagonallyUpLeftFromTheKing(checkLocation, queen, bishop);
         }
-        else if(!EmptyChessBoardCell(currentPiece)){
-            break;
+        else if(FoundChessPiece(checkLocation, queen) || FoundChessPiece(checkLocation, bishop)){
+            return true;
         }
-
-        row--;
     }
 
-    // Checking vertically down
-    row = kingLocation.row + 1;
-    while(ValidChessBoardPosition(row, col)){
-        currentPiece = chessBoard[row][col];
-        // printf("Checking vertically down: %d, %d, %c\n", row, col, currentPiece);
-        if(FoundChessPiece(currentPiece, queen) || FoundChessPiece(currentPiece, rook)){
-            checkKingCount++;
-            break;
-        }
-        else if(!EmptyChessBoardCell(currentPiece)){
-            break;
-        }
-
-        row++;
-    }
-
-    return checkKingCount;
+    return false;
 }
 
-// Checking diagonally right from the king
-// Only the queen and the bishop can check the king diagonally
-int CheckDiagonallyRightFromTheKing(ChessPieceLocation_t kingLocation, char chessBoard[][ChessBoardSize], char queen, char bishop){
-    int checkKingCount = 0;
-    char currentPiece;
-    int row, col;
+_Bool CheckDiagonallyUpRightFromTheKing(ChessPieceLocation_t checkLocation, const char queen, const char bishop){
 
-    // Checking diagonal up right
-    row = kingLocation.row - 1;
-    col = kingLocation.col + 1;
-    while(ValidChessBoardPosition(row, col)){
-        currentPiece = chessBoard[row][col];
-        // printf("Checking diagonally up right: %d, %d, %c\n", row, col, currentPiece);
-        if(FoundChessPiece(currentPiece, queen) || FoundChessPiece(currentPiece, bishop)){
-            checkKingCount++;
-            break;
+    if(ValidChessBoardPosition(checkLocation)){
+        if(EmptyChessBoardCell(checkLocation) || CurrentlyAtKingLocation(checkLocation)){
+            checkLocation.row -= 1;
+            checkLocation.col += 1;
+            return CheckDiagonallyUpRightFromTheKing(checkLocation, queen, bishop);
         }
-        else if(!EmptyChessBoardCell(currentPiece)){
-            break;
+        else if(FoundChessPiece(checkLocation, queen) || FoundChessPiece(checkLocation, bishop)){
+            return true;
         }
-
-        row--;
-        col++;
     }
 
-    // Checking diagonal down right
-    row = kingLocation.row + 1;
-    col = kingLocation.col + 1;
-    while(ValidChessBoardPosition(row, col)){
-        currentPiece = chessBoard[row][col];
-        // printf("Checking diagonally down right: %d, %d, %c\n", row, col, currentPiece);
-        if(FoundChessPiece(currentPiece, queen) || FoundChessPiece(currentPiece, bishop)){
-            checkKingCount++;
-            break;
-        }
-        else if(!EmptyChessBoardCell(currentPiece)){
-            break;
-        }
-
-        row++;
-        col++;
-    }
-
-    return checkKingCount;
+    return false;
 }
 
-// Checking diagonally left from the king
-// Only the queen and the bishop can check the king diagonally
-int CheckDiagonallyLeftFromTheKing(ChessPieceLocation_t kingLocation, char chessBoard[][ChessBoardSize], char queen, char bishop){
-    int checkKingCount = 0;
-    char currentPiece;
-    int row, col;
+_Bool CheckDiagonallyDownLeftFromTheKing(ChessPieceLocation_t checkLocation, const char queen, const char bishop){
 
-    // Checking diagonal up left
-    row = kingLocation.row - 1;
-    col = kingLocation.col - 1;
-    while(ValidChessBoardPosition(row, col)){
-        currentPiece = chessBoard[row][col];
-        // printf("Checking diagonally up left: %d, %d, %c\n", row, col, currentPiece);
-        if(FoundChessPiece(currentPiece, queen) || FoundChessPiece(currentPiece, bishop)){
-            checkKingCount++;
-            break;
+    if(ValidChessBoardPosition(checkLocation)){
+        if(EmptyChessBoardCell(checkLocation) || CurrentlyAtKingLocation(checkLocation)){
+            checkLocation.row += 1;
+            checkLocation.col -= 1;
+            return CheckDiagonallyDownLeftFromTheKing(checkLocation, queen, bishop);
         }
-        else if(!EmptyChessBoardCell(currentPiece)){
-            break;
+        else if(FoundChessPiece(checkLocation, queen) || FoundChessPiece(checkLocation, bishop)){
+            return true;
         }
-
-        row--;
-        col--;
     }
 
-    // Checking diagonal down right
-    row = kingLocation.row + 1;
-    col = kingLocation.col - 1;
-    while(ValidChessBoardPosition(row, col)){
-        currentPiece = chessBoard[row][col];
-        // printf("Checking diagonally down left: %d, %d, %c\n", row, col, currentPiece);
-        if(FoundChessPiece(currentPiece, queen) || FoundChessPiece(currentPiece, bishop)){
-            checkKingCount++;
-            break;
-        }
-        else if(!EmptyChessBoardCell(currentPiece)){
-            break;
-        }
-
-        row++;
-        col--;
-    }
-
-    return checkKingCount;
+    return false;
 }
 
-// Checks if a knight has put the king in check
-int CheckForAKnight(ChessPieceLocation_t kingLocation, char chessBoard[][ChessBoardSize], char knight){
-    char currentPiece;
-    int checkKingCount = 0, knightPositions = 8;
-    int knightRowPositions[] = {-1,-1,1,1,2,2,-2,-2};
-    int knightColPositions[] = {2,-2,2,-2,1,-1,1,-1};
-    int row, col, index;
+_Bool CheckDiagonallyDownRightFromTheKing(ChessPieceLocation_t checkLocation, const char queen, const char bishop){
 
-    for(index = 0; index < knightPositions; index++){
-        row = kingLocation.row + knightRowPositions[index];
-        col = kingLocation.col + knightColPositions[index];
-
-        if(ValidChessBoardPosition(row, col)){
-            currentPiece = chessBoard[row][col];
-            // printf("Checking for knight positions: %d, %d, %c\n", row, col, currentPiece);
-            if(FoundChessPiece(currentPiece, knight)){
-                checkKingCount++;
-            }
+    if(ValidChessBoardPosition(checkLocation)){
+        if(EmptyChessBoardCell(checkLocation) || CurrentlyAtKingLocation(checkLocation)){
+            checkLocation.row += 1;
+            checkLocation.col += 1;
+            return CheckDiagonallyDownRightFromTheKing(checkLocation, queen, bishop);
+        }
+        else if(FoundChessPiece(checkLocation, queen) || FoundChessPiece(checkLocation, bishop)){
+            return true;
         }
     }
 
-    return checkKingCount;
+    return false;
+
 }
 
-// Checks if a pawn has put the king in check
-int CheckForAPawn(ChessPieceLocation_t kingLocation, char chessBoard[][ChessBoardSize], char pawn){
-    char currentPiece;
-    int checkKingCount = 0, pawnPositions = 2;
-    int pawnRowPositions[] = {1, 1};
-    int pawnColPositions[] = {1, -1};
-    int row, col, index;
+int CheckForPawns(ChessPieceLocation_t kingLocation, const char pawn){
+    int pawnRowPositions[] = { 1, 1 };
+    int pawnColPositions[] = { -1, 1 };
+    int count = 0;
 
-    for(index = 0; index < pawnPositions; index++){
-        row = kingLocation.row + pawnRowPositions[index];
-        col = kingLocation.col + pawnColPositions[index];
+    size_t index;
+    for(index = 0; index < ArraySize(pawnRowPositions); index++){
+        ChessPieceLocation_t checkLocation;
+        checkLocation.row = kingLocation.row + pawnRowPositions[index];
+        checkLocation.col = kingLocation.col + pawnColPositions[index];
 
-        if(ValidChessBoardPosition(row, col)){
-            currentPiece = chessBoard[row][col];
-            // printf("Checking for pawn positions: %d, %d, %c\n", row, col, currentPiece);
-            if(FoundChessPiece(currentPiece, pawn)){
-                checkKingCount++;
-            }
+        if(ValidChessBoardPosition(checkLocation) && FoundChessPiece(checkLocation, pawn)){
+            count += 1;
         }
     }
 
-    return checkKingCount;
+    return count;
 }
 
-// Checks ig a king has put the king in check
-int CheckForAKing(ChessPieceLocation_t kingLocation, char chessBoard[][ChessBoardSize], char king){
-    char currentPiece;
-    int checkKingCount = 0, kingPositions = 8;
-    int kingRowPositions[] = {-1, -1, -1, 0, 0, 1, 1, 1};
-    int kingColPositions[] = {0, 1, -1, 1, -1, 0, 1, -1};
+int CheckForKnights(ChessPieceLocation_t kingLocation, const char knight){
+    int knightRowPositions[] = { 2, 2, -2, -2, 1, 1, -1, -1 };
+    int knightColPositions[] = { -1, 1, 1, -1, -2, 2, -2, 2 };
+    int count = 0;
 
-    int row, col, index;
-    for(index = 0; index < kingPositions; index++){
-        row = kingLocation.row + kingRowPositions[index];
-        col = kingLocation.col + kingColPositions[index];
+    size_t index;
+    for(index = 0; index < ArraySize(knightRowPositions); index++){
+        ChessPieceLocation_t checkLocation;
+        checkLocation.row = kingLocation.row + knightRowPositions[index];
+        checkLocation.col = kingLocation.col + knightColPositions[index];
 
-        if(ValidChessBoardPosition(row, col)){
-            currentPiece = chessBoard[row][col];
-            // printf("Checking for king positions: %d, %d, %c\n", row, col, currentPiece);
-            if(FoundChessPiece(currentPiece, king)){
-                checkKingCount++;
-            }
+        if(ValidChessBoardPosition(checkLocation) && FoundChessPiece(checkLocation, knight)){
+            count += 1;
         }
     }
 
-    return checkKingCount;
+    return count;
 }
 
-// Function looking for pieces that put the king in check
-// Takes in the location of the king, and the char notation of the other chess pieces
-int GetCheckCount(ChessPieceLocation_t kingLocation, char chessBoard[][ChessBoardSize], char king, char queen, char rook, char bishop, char knight, char pawn){
-    int checkCnt;
+int CheckForKing(ChessPieceLocation_t kingLocation, const char king){
+    int kingRowPositions[] = { 1, 1, 1, 0, 0, -1, -1, -1 };
+    int kingColPositions[] = { -1, 0, 1, 1, -1, -1, 0, 1 };
+    int count = 0;
 
-    checkCnt = CheckHorizontallyFromTheKing(kingLocation, chessBoard, queen, rook);
-    checkCnt += CheckVerticallyFromTheKing(kingLocation, chessBoard, queen, rook);
-    checkCnt += CheckDiagonallyLeftFromTheKing(kingLocation, chessBoard, queen, bishop);
-    checkCnt += CheckDiagonallyRightFromTheKing(kingLocation, chessBoard, queen, bishop);
-    checkCnt += CheckForAKnight(kingLocation, chessBoard, knight);
-    checkCnt += CheckForAPawn(kingLocation, chessBoard, pawn);
-    checkCnt += CheckForAKing(kingLocation, chessBoard, king);
+    size_t index;
+    for(index = 0; index < ArraySize(kingRowPositions); index++){
+        ChessPieceLocation_t checkLocation;
+        checkLocation.row = kingLocation.row + kingRowPositions[index];
+        checkLocation.col = kingLocation.col + kingColPositions[index];
 
-    return checkCnt;
+        if(ValidChessBoardPosition(checkLocation) && FoundChessPiece(checkLocation, king)){
+            count += 1;
+        }
+    }
+
+    return count;
 }
 
 int main(){
 
-    int checkCount;
-    char chessBoard[ChessBoardSize][ChessBoardSize];
-    char whitePieces[] = { 'K', 'Q', 'R', 'B', 'N', 'P' };
     char blackPieces[] = { 'k', 'q', 'r', 'b', 'n', 'p' };
-    ChessPieceLocation_t blackKingLocation;
+    char whitePieces[] = { 'K', 'Q', 'R', 'B', 'N', 'P' };
+    int checkCount = 0;
 
-    ReadInChessBoard(chessBoard);
-    blackKingLocation = GetChessPieceLocation(chessBoard, blackPieces[0]);
+    ReadInChessBoard();
+    // PrintChessBoard();
+    kingLocation = GetChessPieceLocation(blackPieces[0]);
 
-    checkCount = GetCheckCount(blackKingLocation, chessBoard, whitePieces[0], whitePieces[1], whitePieces[2], whitePieces[3], whitePieces[4], whitePieces[5]);
+    if(kingLocation.row != Invalid && kingLocation.col != Invalid){
+        if(CheckVerticallyUpFromTheKing(kingLocation, whitePieces[1], whitePieces[2])) checkCount++;
+        if(CheckVerticallyDownFromTheKing(kingLocation, whitePieces[1], whitePieces[2])) checkCount++;
+
+        if(CheckHorizontallyRightFromTheKing(kingLocation, whitePieces[1], whitePieces[2])) checkCount++;
+        if(CheckHorizontallyLeftFromTheKing(kingLocation, whitePieces[1], whitePieces[2])) checkCount++;
+
+        if(CheckDiagonallyUpLeftFromTheKing(kingLocation, whitePieces[1], whitePieces[3])) checkCount++;
+        if(CheckDiagonallyUpRightFromTheKing(kingLocation, whitePieces[1], whitePieces[3])) checkCount++;
+        if(CheckDiagonallyDownLeftFromTheKing(kingLocation, whitePieces[1], whitePieces[3])) checkCount++;
+        if(CheckDiagonallyDownRightFromTheKing(kingLocation, whitePieces[1], whitePieces[3])) checkCount++;
+
+        checkCount += CheckForPawns(kingLocation, whitePieces[5]);
+        checkCount += CheckForKnights(kingLocation, whitePieces[4]);
+        checkCount += CheckForKing(kingLocation, whitePieces[0]);
+    }
 
     printf("%d\n", checkCount);
 
-    return checkCount;
+    return 0;
 }
