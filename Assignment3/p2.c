@@ -1,3 +1,9 @@
+/*
+* Compute the number of white pieces have placed the black king in check
+* White pieces are denoted by K = king, Q = queen, N = knight, P = pawn, B = bishop, R = rook
+* Black pieces are denoted by k = king, q = queen, n = knight, p = pawn, b = bishop, r = rook
+*/
+
 #include <stdio.h>
 #include <stdbool.h>
 
