@@ -26,7 +26,7 @@ typedef enum{
     Move_DiagonallyLeftDown,
     Move_Invalid
 } DirectionToMove_t;
-DirectionToMove_t oppositeDirection[] = { Move_Down, Move_Up, Move_ToTheLeft, Move_ToTheRight, Move_DiagonallyLeftDown, Move_DiagonallyLeftUp, Move_DiagonallyRightDown, Move_DiagonallyRightDown };
+DirectionToMove_t oppositeDirection[] = { Move_Down, Move_Up, Move_ToTheLeft, Move_ToTheRight, Move_DiagonallyLeftDown, Move_DiagonallyLeftUp, Move_DiagonallyRightDown, Move_DiagonallyRightUp };
 
 // Defining structure to maintain the current location on the board
 typedef struct{
@@ -165,7 +165,6 @@ int GetNumOfPiecesCheckingKing(){
     for(index = 0; index < piecesCheckingKingIndex; index++){
         if(piecesCheckingKing[index].valid) count++;
     }
-    printf("Size: %d\n", count);
     return count;
 }
 
@@ -177,11 +176,17 @@ _Bool RetrieveChessPieceCheckingKing(ChessPieceCheckingKing_t *chessPieceCheckin
     else return false;
 }
 
+/***************************************************************************
+* Functions to manipulate data structure to maintain pieces that are being used
+* to capture enemy pieces or block the king
+****************************************************************************/
+
+
 /****************************************************************************
-* Functions to recursively move up the chess board until we find pieces that
+* Functions to move through the chess board until we find pieces that
 * can move to/capture pieces that are at the starting location.
 ****************************************************************************/
-_Bool ChessPieceIsFound(ChessPieceLocation_t currentSearchLocation, const ChessPieceLocation_t locationOfChessPiece, const char chessPieceToFind, DirectionToMove_t direction){
+_Bool ChessPieceIsFound(ChessPieceLocation_t currentSearchLocation, const ChessPieceLocation_t locationOfChessPiece, const char queen, const char rookOrBishop, DirectionToMove_t direction){
 
     while(ValidChessBoardPosition(currentSearchLocation)){
         // printf("search location: %d, %d; location of piece: %d, %d\n", currentSearchLocation.row, currentSearchLocation.col, locationOfChessPiece.row, locationOfChessPiece.col);
@@ -189,9 +194,9 @@ _Bool ChessPieceIsFound(ChessPieceLocation_t currentSearchLocation, const ChessP
         if(EmptyChessBoardCell(currentSearchLocation) || IsSameLocation(locationOfChessPiece, currentSearchLocation)){
             UpdateLocation(&currentSearchLocation, direction);
         }
-        else if(FoundChessPiece(currentSearchLocation, chessPieceToFind)){
+        else if(FoundChessPiece(currentSearchLocation, queen) || FoundChessPiece(currentSearchLocation, rookOrBishop)){
             if(IsSameLocation(locationOfChessPiece, kingLocation)){
-                StoreChessPieceCheckingKing(currentSearchLocation, oppositeDirection[direction]); // Path of the piece is opposite of what we are searching for
+                StoreChessPieceCheckingKing(currentSearchLocation, oppositeDirection[direction]); // Path of the piece is opposite of the direction we are currently searching in
             }
             return true;
         }
@@ -203,18 +208,32 @@ _Bool ChessPieceIsFound(ChessPieceLocation_t currentSearchLocation, const ChessP
     return false;
 }
 
-int CheckForPawns(ChessPieceLocation_t kingLocation, const char pawn){
+int CheckForPawns(ChessPieceLocation_t location, const char pawn){
+    _Bool IsFriendlyPawn = (pawn == friendlyPieces[Pawn]) ? true : false;
     int pawnRowPositions[] = { 1, 1 };
     int pawnColPositions[] = { -1, 1 };
     int count = 0;
 
+    // Checking for pawn capture
     size_t index;
     for(index = 0; index < ArraySize(pawnRowPositions); index++){
         ChessPieceLocation_t checkLocation;
-        checkLocation.row = kingLocation.row + pawnRowPositions[index];
-        checkLocation.col = kingLocation.col + pawnColPositions[index];
+        checkLocation.row = (IsFriendlyPawn) ? location.row - pawnRowPositions[index] : location.row + pawnRowPositions[index];
+        checkLocation.col = (IsFriendlyPawn) ? location.col - pawnRowPositions[index] : location.col + pawnColPositions[index];
 
-        if(ValidChessBoardPosition(checkLocation) && FoundChessPiece(checkLocation, pawn)){
+        if(ValidChessBoardPosition(checkLocation) && FoundChessPiece(checkLocation, pawn) && !EmptyChessBoardCell(checkLocation)){
+            if(IsSameLocation(location, kingLocation)) StoreChessPieceCheckingKing(checkLocation, Move_Invalid);
+            count += 1;
+        }
+    }
+
+    // Checking if we can block path of a piece only if we are moving a friendly piece
+    if(IsFriendlyPawn){
+        ChessPieceLocation_t checkLocation;
+        checkLocation.row = location.row - 1;
+        checkLocation.col = location.col - 0;
+
+        if(ValidChessBoardPosition(checkLocation) && FoundChessPiece(checkLocation, pawn) && EmptyChessBoardCell(checkLocation)){
             count += 1;
         }
     }
@@ -222,7 +241,7 @@ int CheckForPawns(ChessPieceLocation_t kingLocation, const char pawn){
     return count;
 }
 
-int CheckForKnights(ChessPieceLocation_t kingLocation, const char knight){
+int CheckForKnights(ChessPieceLocation_t location, const char knight){
     int knightRowPositions[] = { 2, 2, -2, -2, 1, 1, -1, -1 };
     int knightColPositions[] = { -1, 1, 1, -1, -2, 2, -2, 2 };
     int count = 0;
@@ -230,10 +249,11 @@ int CheckForKnights(ChessPieceLocation_t kingLocation, const char knight){
     size_t index;
     for(index = 0; index < ArraySize(knightRowPositions); index++){
         ChessPieceLocation_t checkLocation;
-        checkLocation.row = kingLocation.row + knightRowPositions[index];
-        checkLocation.col = kingLocation.col + knightColPositions[index];
+        checkLocation.row = location.row + knightRowPositions[index];
+        checkLocation.col = location.col + knightColPositions[index];
 
         if(ValidChessBoardPosition(checkLocation) && FoundChessPiece(checkLocation, knight)){
+            if(IsSameLocation(location, kingLocation)) StoreChessPieceCheckingKing(checkLocation, Move_Invalid);
             count += 1;
         }
     }
@@ -241,7 +261,7 @@ int CheckForKnights(ChessPieceLocation_t kingLocation, const char knight){
     return count;
 }
 
-int CheckForKing(ChessPieceLocation_t kingLocation, const char king){
+int CheckForKing(ChessPieceLocation_t location, const char king){
     int kingRowPositions[] = { 1, 1, 1, 0, 0, -1, -1, -1 };
     int kingColPositions[] = { -1, 0, 1, 1, -1, -1, 0, 1 };
     int count = 0;
@@ -249,10 +269,11 @@ int CheckForKing(ChessPieceLocation_t kingLocation, const char king){
     size_t index;
     for(index = 0; index < ArraySize(kingRowPositions); index++){
         ChessPieceLocation_t checkLocation;
-        checkLocation.row = kingLocation.row + kingRowPositions[index];
-        checkLocation.col = kingLocation.col + kingColPositions[index];
+        checkLocation.row = location.row + kingRowPositions[index];
+        checkLocation.col = location.col + kingColPositions[index];
 
         if(ValidChessBoardPosition(checkLocation) && FoundChessPiece(checkLocation, king)){
+            if(IsSameLocation(location, kingLocation)) StoreChessPieceCheckingKing(checkLocation, Move_Invalid);
             count += 1;
         }
     }
@@ -267,26 +288,22 @@ int CheckForKing(ChessPieceLocation_t kingLocation, const char king){
 int GetNumOfChessPiecesThatCanMoveTo(ChessPieceLocation_t locationToStartSearch, ChessPieceLocation_t locationOfChessPiece, char chessPieces[]){
     int count = 0;
 
-    int index;
-    for(index = 0; index < ArraySize(chessPieces); index++){
-        if(index == Rook || index == Queen){
-            if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[index], Move_Up)) count++;
-            if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[index], Move_Down)) count++;
-            if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[index], Move_ToTheLeft)) count++;
-            if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[index], Move_ToTheRight)) count++;
-        }
+    if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[Queen], chessPieces[Rook], Move_Up)) count++;
+    if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[Queen], chessPieces[Rook], Move_Down)) count++;
+    if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[Queen], chessPieces[Rook], Move_ToTheLeft)) count++;
+    if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[Queen], chessPieces[Rook], Move_ToTheRight)) count++;
 
-        if(index == Bishop || index == Queen){
-            if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[index], Move_DiagonallyLeftUp)) count++;
-            if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[index], Move_DiagonallyRightUp)) count++;
-            if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[index], Move_DiagonallyLeftDown)) count++;
-            if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[index], Move_DiagonallyRightDown)) count++;
-        }
 
-        if(index == King) count += CheckForKing(locationToStartSearch, chessPieces[King]);
-        if(index == Knight) count += CheckForKnights(locationToStartSearch, chessPieces[Knight]);
-        if(index == Pawn) count += CheckForPawns(locationToStartSearch, chessPieces[Pawn]);
+    if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[Queen], chessPieces[Bishop], Move_DiagonallyLeftUp)) count++;
+    if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[Queen], chessPieces[Bishop], Move_DiagonallyRightUp)) count++;
+    if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[Queen], chessPieces[Bishop], Move_DiagonallyLeftDown)) count++;
+    if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[Queen], chessPieces[Bishop], Move_DiagonallyRightDown)) count++;
+
+    if(chessPieces == enemyPieces){
+        count += CheckForKing(locationToStartSearch, chessPieces[King]);
     }
+    count += CheckForKnights(locationToStartSearch, chessPieces[Knight]);
+    count += CheckForPawns(locationToStartSearch, chessPieces[Pawn]);
 
     return count;
 }
@@ -330,7 +347,13 @@ void BlockThePathOfCheckingPieces(){
     int index = 0;
     while(RetrieveChessPieceCheckingKing(&chessPiece, index)){
         if(chessPiece.valid && chessPiece.direction != Move_Invalid){
-
+            ChessPieceLocation_t location = chessPiece.location;
+            while(!IsSameLocation(location, kingLocation) && ValidChessBoardPosition(location)){
+                if(GetNumOfChessPiecesThatCanMoveTo(location, chessPiece.location, friendlyPieces) > 0){
+                    InvalidateChessPieceCheckingKing(index);
+                }
+                UpdateLocation(&location, chessPiece.direction);
+            }
         }
         index++;
     }
@@ -339,8 +362,10 @@ void BlockThePathOfCheckingPieces(){
 _Bool IsCheckMate(){
     // printf("---------------- Checking for checkmate --------------------------\n");
     if(KingCanMoveOutOfCheck()) return false;
-    CapturePiecesCheckingKing();
 
+    CapturePiecesCheckingKing();
+    // GetNumOfPiecesCheckingKing();
+    BlockThePathOfCheckingPieces();
     if(GetNumOfPiecesCheckingKing() == 0) return false;
 
     else return true;;

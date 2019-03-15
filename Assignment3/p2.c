@@ -111,7 +111,7 @@ ChessPieceLocation_t ReadInChessBoardAndGetLocationOf(char chessPiece){
 * Functions to recursively move up the chess board until we find pieces that
 * can move to/capture pieces that are at the starting location.
 ****************************************************************************/
-_Bool ChessPieceIsFound(ChessPieceLocation_t currentSearchLocation, const ChessPieceLocation_t locationOfChessPiece, const char chessPieceToFind, DirectionToMove_t direction){
+_Bool ChessPieceIsFound(ChessPieceLocation_t currentSearchLocation, const ChessPieceLocation_t locationOfChessPiece, const char queen, const char rookOrBishop, DirectionToMove_t direction){
 
     while(ValidChessBoardPosition(currentSearchLocation)){
         // printf("search location: %d, %d; location of piece: %d, %d\n", currentSearchLocation.row, currentSearchLocation.col, locationOfChessPiece.row, locationOfChessPiece.col);
@@ -119,7 +119,7 @@ _Bool ChessPieceIsFound(ChessPieceLocation_t currentSearchLocation, const ChessP
         if(EmptyChessBoardCell(currentSearchLocation) || IsSameLocation(locationOfChessPiece, currentSearchLocation)){
             UpdateLocation(&currentSearchLocation, direction);
         }
-        else if(FoundChessPiece(currentSearchLocation, chessPieceToFind)){
+        else if(FoundChessPiece(currentSearchLocation, queen) || FoundChessPiece(currentSearchLocation, rookOrBishop)){
             return true;
         }
         else{
@@ -194,26 +194,20 @@ int CheckForKing(ChessPieceLocation_t kingLocation, const char king){
 int GetNumOfChessPiecesThatCanMoveTo(ChessPieceLocation_t locationToStartSearch, ChessPieceLocation_t locationOfChessPiece, char chessPieces[]){
     int count = 0;
 
-    int index;
-    for(index = 0; index < ArraySize(chessPieces); index++){
-        if(index == Rook || index == Queen){
-            if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[index], Move_Up)) count++;
-            if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[index], Move_Down)) count++;
-            if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[index], Move_ToTheLeft)) count++;
-            if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[index], Move_ToTheRight)) count++;
-        }
+    if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[Queen], chessPieces[Rook], Move_Up)) count++;
+    if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[Queen], chessPieces[Rook], Move_Down)) count++;
+    if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[Queen], chessPieces[Rook], Move_ToTheLeft)) count++;
+    if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[Queen], chessPieces[Rook], Move_ToTheRight)) count++;
 
-        if(index == Bishop || index == Queen){
-            if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[index], Move_DiagonallyLeftUp)) count++;
-            if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[index], Move_DiagonallyRightUp)) count++;
-            if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[index], Move_DiagonallyLeftDown)) count++;
-            if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[index], Move_DiagonallyRightDown)) count++;
-        }
 
-        if(index == King) count += CheckForKing(locationToStartSearch, chessPieces[King]);
-        if(index == Knight) count += CheckForKnights(locationToStartSearch, chessPieces[Knight]);
-        if(index == Pawn) count += CheckForPawns(locationToStartSearch, chessPieces[Pawn]);
-    }
+    if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[Queen], chessPieces[Bishop], Move_DiagonallyLeftUp)) count++;
+    if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[Queen], chessPieces[Bishop], Move_DiagonallyRightUp)) count++;
+    if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[Queen], chessPieces[Bishop], Move_DiagonallyLeftDown)) count++;
+    if(ChessPieceIsFound(locationToStartSearch, locationOfChessPiece, chessPieces[Queen], chessPieces[Bishop], Move_DiagonallyRightDown)) count++;
+
+    count += CheckForKing(locationToStartSearch, chessPieces[King]);
+    count += CheckForKnights(locationToStartSearch, chessPieces[Knight]);
+    count += CheckForPawns(locationToStartSearch, chessPieces[Pawn]);
 
     return count;
 }
