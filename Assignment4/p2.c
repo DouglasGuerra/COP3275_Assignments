@@ -6,10 +6,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 
-#define MAX_USER_INPUT 25
 #define MAX_STRING_LENGTH 100
-#define MAX_STUDENTS 100
+#define MAX_WORDS_IN_STRING 100
+#define MAX_STUDENTS_ENROLLED 100
+
+#define STRMCP_EQUAL 0
 
 typedef struct{
     char firstName[MAX_STRING_LENGTH];
@@ -18,183 +21,178 @@ typedef struct{
 } Student_t;
 
 typedef struct{
+    Student_t studentsEnrolled[MAX_STUDENTS_ENROLLED];
     char name[MAX_STRING_LENGTH];
-    Student_t studentsEnrolled[MAX_STUDENTS];
     float averageGPA;
     int numOfStudents;
 } Course_t;
 
-/******************************************************************
-* Helper functions
-******************************************************************/
-void Clear_String(char *string, int size){
-    int i;
-    for(i = 0; i < size; i++) string[i] = 0;
-}
+typedef struct{
+    char data[MAX_STRING_LENGTH];
+    int length;
+} Word_t;
 
-void Clear_Strings(int arrSize, int stringLength, char arr[arrSize][stringLength]){
-    int i;
-    for(i = 0; i < arrSize; i++) Clear_String(arr[i], stringLength);
-}
+/***************************************************************************
+* I/O functions
+****************************************************************************/
+int Get_NextLine(char string[]){
+    char readInChar;
+    int index = 0;
 
-/******************************************************************
-* Functions to handle students in the system
-******************************************************************/
-void Init_StudentsInSystem(Student_t students[], int numOfStudents){
-    int i;
-    for(i = 0; i < numOfStudents; i++){
-        Student_t student;
-        Clear_String(student.firstName, MAX_STRING_LENGTH);
-        Clear_String(student.lastName, MAX_STRING_LENGTH);
-        students[i] = student;
+    scanf(" %c", &readInChar);
+    while(readInChar != '\n'){
+        string[index++] = readInChar;
+        scanf("%c", &readInChar);
     }
+
+    return index;
 }
 
-void Load_StudentsIntoSystem(Student_t students[], int numOfStudents){
-    int i;
-    for(i = 0; i < numOfStudents; i++){
-        char tempChar;
-        int foundSpace = false;
-        scanf(" %c", &tempChar);
-        while(tempChar != '\n'){
-            if(tempChar == ' ') foundSpace = true;
-            else if(!foundSpace) sprintf(students[i].firstName, "%s%c", students[i].firstName, tempChar);
-            else sprintf(students[i].lastName, "%s%c", students[i].lastName, tempChar);
-            scanf("%c", &tempChar);
-        }
-    }
-}
-
-void PrintStudents(Student_t students[], int numOfStudents){
-    printf("\n-------------------- printing students ------------------\n");
-    int i;
-    for(i = 0; i < numOfStudents; i++){
-        printf("%s, %s\n", students[i].firstName, students[i].lastName);
-    }
-}
-
-/******************************************************************
-* Functions to handle courses in the system
-******************************************************************/
-void Init_CoursesInSystem(Course_t courses[], int numOfCourses){
-    int index;
-    for(index = 0; index < numOfCourses; index++){
-        Course_t course;
-        Init_StudentsInSystem(course.studentsEnrolled, MAX_STUDENTS);
-        Clear_String(course.name, MAX_STRING_LENGTH);
-        course.averageGPA = 0;
-        course.numOfStudents = 0;
-        courses[index] = course;
-    }
-}
-
-void Load_CoursesIntoSystem(Course_t courses[], int numOfCourses){
-    int i;
-    for(i = 0; i < numOfCourses; i++){
-        char tempChar;
-        scanf(" %c", &tempChar);
-        while(tempChar != '\n'){
-            sprintf(courses[i].name, "%s%c", courses[i].name, tempChar);
-            scanf("%c", &tempChar);
-        }
-    }
-}
-
-int Get_CourseIndex(Course_t courses[], const char *course, int numOfCourses){
-    int i;
-    for(i = 0; i < numOfCourses; i++){
-        if(strcmp(courses[i].name, course) == 0) return i;
-    }
-    return -1;
-}
-
-void Add_StudentToCourse(Course_t courses[], Student_t student, const char *course, int numOfCourses){
-    int courseIndex = Get_CourseIndex(courses, course, numOfCourses) != -1;
-    if(courseIndex != -1){
-        Course_t course = courses[courseIndex];
-        course.studentsEnrolled[course.numOfStudents] = student;
-        course.numOfStudents++;
-    }
-}
-
-void PrintCourses(Course_t courses[], int numOfCourses){
-    printf("\n---------------- printing course --------------------\n");
-    int i;
-    for(i = 0; i < numOfCourses; i++){
-        printf("%s\t%f\n", courses[i].name, courses[i].averageGPA);
-        printf("\nstudents: \n");
-        int j;
-        for(j = 0; j < courses[i].numOfStudents; j++){
-            printf("%s\n", courses[i].studentsEnrolled[j].firstName);
-        }
-    }
-}
-
-/*****************************************************************
-* Functions to handle menu entries
-******************************************************************/
-void ReadInUserInputIntoArray(int arrSize, int stringLength, char arr[arrSize][stringLength]){
-    int storeIndex = 0;
-    char tempChar;
+int Get_WordsInString(Word_t words[], char string[], int stringLength){
+    int wordIndex = 0, wordDataStoreIndex = 0;
     char word[MAX_STRING_LENGTH];
 
-    Clear_String(word, MAX_STRING_LENGTH);
-
-    scanf(" %c", &tempChar);
-    while(tempChar != '\n'){
-        if(tempChar == ' '){
-            sprintf(arr[storeIndex], "%s", word);
-            storeIndex++;
-            Clear_String(word, MAX_STRING_LENGTH);
+    int i;
+    for(i = 0; i < stringLength; i++){
+        if(string[i] == ' '){
+            words[wordIndex].length = wordDataStoreIndex;
+            wordDataStoreIndex = 0;
+            wordIndex += 1;
         }
         else{
-            sprintf(word, "%s%c", word, tempChar);
+            words[wordIndex].data[wordDataStoreIndex++] = string[i];
         }
-        scanf("%c", &tempChar);
     }
-    sprintf(arr[storeIndex], "%s", word);
+    if(wordDataStoreIndex > 0) words[wordIndex++].length = wordDataStoreIndex;
+
+    return wordIndex;
 }
 
-/******************************************************************
-* Main code
-******************************************************************/
+void Print_Words(Word_t words[], int size){
+    printf("----------------------- Printing words --------------------------\n");
+    int i;
+    for(i = 0; i < size; i++){
+        printf("%s\t%d\n", words[i].data, words[i].length);
+    }
+}
+
+/***************************************************************************
+* Functions to handle student data structure
+***************************************************************************/
+void Init_Students(Student_t students[], int numStudents){
+    int i;
+    for(i = 0; i < numStudents; i++){
+        memset(students[i].firstName, 0, MAX_STRING_LENGTH);
+        memset(students[i].lastName, 0, MAX_STRING_LENGTH);
+        students[i].gpa = 0;
+    }
+}
+
+void Insert_StudentName(Student_t *student, const Word_t studentFirstAndLastName[]){
+    int i;
+    for(i = 0; i < studentFirstAndLastName[0].length; i++){
+        student->firstName[i] = studentFirstAndLastName[0].data[i];
+    }
+
+    for(i = 0; i < studentFirstAndLastName[1].length; i++){
+        student->lastName[i] = studentFirstAndLastName[1].data[i];
+    }
+}
+
+void Insert_Student(Student_t students[], int numStudents){
+    int i;
+    for(i = 0; i < numStudents; i++){
+        char studentName[MAX_STRING_LENGTH] = { 0 };
+        Word_t studentFirstAndLastName[2] = { 0 };
+        int length = Get_NextLine(studentName);
+        Get_WordsInString(studentFirstAndLastName, studentName, length);
+        Insert_StudentName(&students[i], studentFirstAndLastName);
+    }
+}
+
+void Print_Students(const Student_t students[], int numStudents){
+    printf("--------------------- Printing students -------------------------\n");
+    int i;
+    for(i = 0; i < numStudents; i++){
+        printf("name: %s %s, gpa: %d\n", students[i].firstName, students[i].lastName, students[i].gpa);
+    }
+}
+
+/***************************************************************************
+* Functions to handle course data structure
+***************************************************************************/
+void Init_Courses(Course_t courses[], int numCourses){
+    int i;
+    for(i = 0; i < numCourses; i++){
+        Init_Students(courses[i].studentsEnrolled, MAX_STUDENTS_ENROLLED);
+        memset(courses[i].name, 0, MAX_STRING_LENGTH);
+        courses[i].averageGPA = 0;
+        courses[i].numOfStudents = 0;
+    }
+}
+
+void Insert_CourseName(Course_t *course, const char name[], const int courseNameLength){
+    int i;
+    for(i = 0; i < courseNameLength; i++){
+        course->name[i] = name[i];
+    }
+}
+
+void Insert_Course(Course_t courses[], int numCourses){
+    int i;
+    for(i = 0; i < numCourses; i++){
+        char courseName[MAX_STRING_LENGTH] = { 0 };
+        int length = Get_NextLine(courseName);
+        Insert_CourseName(&courses[i], courseName, length);
+    }
+}
+
+void Print_Courses(Course_t courses[], int numCourses){
+    printf("------------------- printing courses ------------------- \n");
+    int i;
+    for(i = 0; i < numCourses; i++){
+        printf("name: %s, gpa: %f, num students: %d\n", courses[i].name, courses[i].averageGPA, courses[i].numOfStudents);
+        Print_Students(courses[i].studentsEnrolled, courses[i].numOfStudents);
+    }
+}
+
 int main(){
 
     int numStudents, numCourses;
-    scanf("%d", &numStudents);
-    scanf("%d", &numCourses);
+    scanf("%d %d", &numStudents, &numCourses);
 
-    // Loading students into the system
     Student_t students[numStudents];
-    Init_StudentsInSystem(students, numStudents);
-    Load_StudentsIntoSystem(students, numStudents);
-    PrintStudents(students, numStudents);
-
-    // Loading courses into the system
     Course_t courses[numCourses];
-    Init_CoursesInSystem(courses, numCourses);
-    Load_CoursesIntoSystem(courses, numCourses);
-    PrintCourses(courses, numCourses);
 
-    // Menu
-    char userInput[MAX_USER_INPUT][MAX_STRING_LENGTH];
-    Clear_Strings(MAX_USER_INPUT, MAX_STRING_LENGTH, userInput);
+    Init_Students(students, numStudents);
+    Insert_Student(students, numStudents);
+    Print_Students(students, numStudents);
+
+    Init_Courses(courses, numCourses);
+    Insert_Course(courses, numCourses);
+    Print_Courses(courses, numCourses);
 
     while(1){
-        ReadInUserInputIntoArray(MAX_USER_INPUT, MAX_STRING_LENGTH,userInput);
-        char *command = userInput[0];
+        char userInput[MAX_STRING_LENGTH] = { 0 };
+        Word_t wordsInInput[MAX_WORDS_IN_STRING] = { 0 };
+        int length = Get_NextLine(userInput);
+        int wordCount = Get_WordsInString(wordsInInput, userInput, length);
+        Print_Words(wordsInInput, wordCount);
 
-        if(strcmp(command, "enroll") == 0) printf("enroll\n");
-        if(strcmp(command, "unenroll") == 0) printf("unenroll\n");
-        if(strcmp(command, "grade") == 0) printf("grade\n");
-        if(strcmp(command, "ave") == 0) printf("ave\n");
-        if(strcmp(command, "gpa") == 0) printf("gpa\n");
-        if(strcmp(command, "count") == 0) printf("count\n");
-        if(strcmp(command, "topstudent") == 0) printf("topstudent\n");
-        if(strcmp(command, "findmutual") == 0) printf("findmutual\n");
-        if(strcmp(command, "listcourses") == 0) printf("listcourses\n");
-        if(strcmp(command, "findfirstnames") == 0) printf("firstnames\n");
-        if(strcmp(command, "quit") == 0) break;
+        char *command = wordsInInput[0].data;
+        if(strcmp("quit", command) == STRMCP_EQUAL) break;
+        else if(strcmp("enroll", command) == STRMCP_EQUAL) printf("enroll\n");
+        else if(strcmp("unenroll", command) == STRMCP_EQUAL) printf("unenroll\n");
+        else if(strcmp("grade", command) == STRMCP_EQUAL) printf("grade\n");
+        else if(strcmp("ave", command) == STRMCP_EQUAL) printf("ave\n");
+        else if(strcmp("gpa", command) == STRMCP_EQUAL) printf("gpa\n");
+        else if(strcmp("count", command) == STRMCP_EQUAL) printf("count\n");
+        else if(strcmp("topstudent", command) == STRMCP_EQUAL) printf("topstudent\n");
+        else if(strcmp("findmutual", command) == STRMCP_EQUAL) printf("findmutual\n");
+        else if(strcmp("listcourses", command) == STRMCP_EQUAL) printf("listcourses\n");
+        else if(strcmp("findfirstnames", command) == STRMCP_EQUAL) printf("findfirstnames\n");
     }
 
+
+    return 0;
 }
