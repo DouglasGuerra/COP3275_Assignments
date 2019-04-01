@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_STRING_LENGTH 10000
-#define MAX_WORDS_IN_WORD_ARRAY 20
+#define MAX_STRING_LENGTH 500
+#define MAX_WORDS_IN_WORD_ARRAY 30
 #define NULL_CHARACTER 0
 #define STRMCP_EQUAL 0
 #define INVALID -1
@@ -140,7 +140,7 @@ void Get_NextUserInput(Word_t *word){
     char readInChar;
 
     scanf(" %c", &readInChar);
-    while(readInChar != '\n' && word->length < MAX_WORDS_IN_WORD_ARRAY){
+    while(readInChar != '\n'){
         word->data[word->length] = readInChar;
         word->length = word->length + 1;
         scanf("%c", &readInChar);
