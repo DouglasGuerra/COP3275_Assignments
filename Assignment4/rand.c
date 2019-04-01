@@ -23,6 +23,7 @@ typedef struct{
 
 typedef struct{
     char name[MAX_COURSE_NAME_LENGTH];
+    int topGrade;
 } Course_t;
 
 typedef struct{
@@ -40,11 +41,6 @@ void Clear_WordArray(int arraySize, int stringLength, char words[arraySize][stri
     int i;
     for(i = 0; i < arraySize; i++)
         memset(words[i], NULL_CHARACTER, stringLength);
-}
-
-void Print_WordArray(int arraySize, int stringLength, char words[arraySize][stringLength]){
-    int i;
-    for(i = 0; i < arraySize; i++) printf("%s\n", words[i]);
 }
 
 void Get_NextInput(int length, char *string){
@@ -133,23 +129,20 @@ int Get_StudentIndex(Student_t students[], const char *firstName, const char *la
     return INVALID;
 }
 
-int Get_StudentsWithLastName(Student_t students[], const char *lastName, int studentIds[]){
-    memset(studentIds, 0, numStudents);
+int Print_StudentsWithLastName(Student_t students[], const char *lastName){
+    bool foundStudent = false;
     int i, storeIndex = 0;
     for(i = 0; i < numStudents; i++){
-        if(strcmp(students[i].lastName, lastName) == STRCMP_EQUAL)
-            studentIds[storeIndex++] = i;
+        if(strcmp(students[i].lastName, lastName) == STRCMP_EQUAL){
+            if(!foundStudent){
+                printf("%s", students[i].firstName);
+                foundStudent = true;
+            }
+            else printf(", %s", students[i].firstName);
+        }
     }
-    return storeIndex;
-}
 
-void Print_StudentsWithId(Student_t students[], int numIds, int studentIds[], bool printLastName){
-    int i;
-    for(i = 0; i < numIds; i++){
-        if(i > 0) printf(", ");
-        printf("%s", students[studentIds[i]].firstName);
-        if(printLastName) printf(" %s", students[studentIds[i]].lastName);
-    }
+    if(!foundStudent) printf("N/A");
     printf("\n");
 }
 
@@ -168,17 +161,19 @@ void Print_Students(Student_t students[]){
 *******************************************************/
 void Init_Courses(Course_t courses[]){
     int i;
-    for(i = 0; i < numCourses; i++)
+    for(i = 0; i < numCourses; i++){
         memset(courses[i].name, NULL_CHARACTER, MAX_COURSE_NAME_LENGTH);
+        courses[i].topGrade = 0;
+    }
 }
 
 void Fill_Courses(Course_t courses[]){
     char courseName[MAX_COURSE_NAME_LENGTH];
-
     int i;
     for(i = 0; i < numCourses; i++){
         Get_NextInput(MAX_COURSE_NAME_LENGTH, courseName);
         sprintf(courses[i].name, "%s", courseName);
+        courses[i].topGrade = 0;
     }
 }
 
@@ -190,13 +185,14 @@ int Get_CourseIndex(Course_t courses[], const char *courseName){
     return INVALID;
 }
 
-void Print_CoursesWithId(Course_t courses[], int numIds, int courseIds[]){
-    int i;
-    for(i = 0; i < numIds; i++){
-        if(i > 0) printf(", ");
-        printf("%s", courses[courseIds[i]].name);
-    }
-    printf("\n");
+void Update_TopGrade(Course_t courses[], int courseIndex, int grade){
+    if(grade >= courses[courseIndex].topGrade)
+        courses[courseIndex].topGrade = grade;
+}
+
+int Get_CourseTopGrade(Course_t courses[], int courseIndex){
+    if(courseIndex != INVALID)
+        return courses[courseIndex].topGrade;
 }
 
 void Print_Courses(Course_t courses[]){
@@ -279,64 +275,71 @@ int Get_NumStudentsEnrolled(SystemEntry_t studentSystem[][numStudents], int cour
     for(studentIndex = 0; studentIndex < numStudents; studentIndex++){
         if(studentSystem[courseIndex][studentIndex].enrolled) count++;
     }
-
     return count;
 }
 
-int Get_CoursesEnrolled(SystemEntry_t studentSystem[][numStudents], int studentIndex, int courseIds[]){
-    memset(courseIds, 0, numCourses);
-    int courseIndex, storeIndex = 0;
+void Print_CoursesEnrolled(SystemEntry_t studentSystem[][numStudents], Course_t courses[], int studentIndex){
+    bool foundCourse = false;
+    int courseIndex;
     for(courseIndex = 0; courseIndex < numCourses; courseIndex++){
-        if(studentSystem[courseIndex][studentIndex].enrolled)
-            courseIds[storeIndex++] = courseIndex;
-    }
-    return storeIndex;
-}
-
-int Get_TopGradeInCourse(SystemEntry_t studentSystem[][numStudents], int courseIndex){
-    int topGrade = 0;
-    if(courseIndex != INVALID){
-        int studentIndex;
-        for(studentIndex = 0; studentIndex < numStudents; studentIndex++)
-            if(studentSystem[courseIndex][studentIndex].grade > topGrade)
-                topGrade = studentSystem[courseIndex][studentIndex].grade;
-    }
-    return topGrade;
-}
-
-int Get_TopStudentsInCourse(SystemEntry_t studentSystem[][numStudents], int courseIndex, int studentIds[]){
-    memset(studentIds, 0, numStudents);
-    int storeIndex = 0;
-    int topGrade = Get_TopGradeInCourse(studentSystem, courseIndex);
-    if(courseIndex != INVALID){
-        int studentIndex;
-        for(studentIndex = 0; studentIndex < numStudents; studentIndex++){
-            if(studentSystem[courseIndex][studentIndex].grade >= topGrade)
-                studentIds[storeIndex++] = studentIndex;
+        if(studentSystem[courseIndex][studentIndex].enrolled){
+            if(!foundCourse){
+                printf("%s", courses[courseIndex].name);
+                foundCourse = true;
+            }
+            else printf(", %s", courses[courseIndex].name);
         }
     }
 
-    return storeIndex;
+    if(!foundCourse) printf("N/A");
+    printf("\n");
 }
 
-int Get_StudentsInMutualCourses(SystemEntry_t studentSystem[][numStudents], int studentIndex, int studentIds[]){
-    memset(studentIds, 0, numStudents);
+void Print_TopStudentsInCourse(SystemEntry_t studentSystem[][numStudents], Student_t students[], int courseIndex, int topGrade){
+    bool foundStudent = false;
+    int storeIndex = 0;
+    if(courseIndex != INVALID){
+        int studentIndex;
+        for(studentIndex = 0; studentIndex < numStudents; studentIndex++){
+            if(studentSystem[courseIndex][studentIndex].grade >= topGrade){
+                if(!foundStudent){
+                    printf("%s %s", students[studentIndex].firstName, students[studentIndex].lastName);
+                    foundStudent = true;
+                }
+                else printf(", %s %s", students[studentIndex].firstName, students[studentIndex].lastName);
+            }
+        }
+    }
+
+    if(!foundStudent) printf("N/A");
+    printf("\n");
+}
+
+void Print_StudentsInMutualCourses(SystemEntry_t studentSystem[][numStudents], Student_t students[], int studentIndex){
+    bool foundStudent = false;;
     int storeIndex = 0;
     if(studentIndex != INVALID){
         int courseIndex, index;
         for(index = 0; index < numStudents; index++){
+            if(index == studentIndex) continue;
             int mutualCourses = 0;
             for(courseIndex = 0; courseIndex < numCourses; courseIndex++){
-                bool sameStudent = (studentIndex == index);
-                bool enrolledInSameCourse = (studentSystem[courseIndex][index].enrolled && studentSystem[courseIndex][index].enrolled);
-
-                if(!sameStudent && enrolledInSameCourse) mutualCourses++;
+                if(studentSystem[courseIndex][studentIndex].enrolled && studentSystem[courseIndex][index].enrolled)
+                    mutualCourses++;
             }
 
-            if(mutualCourses >= 2) studentIds[storeIndex++] = index;
+            if(mutualCourses >= 2){
+                if(!foundStudent){
+                    printf("%s %s", students[index].firstName, students[index].lastName);
+                    foundStudent = true;
+                }
+                else printf(", %s %s", students[index].firstName, students[index].lastName);
+            }
         }
     }
-    return storeIndex;
+
+    if(!foundStudent) printf("N/A");
+    printf("\n");
 }
 
 void Print_System(SystemEntry_t studentSystem[][numStudents]){
@@ -362,18 +365,15 @@ int main(){
     Student_t students[numStudents];
     Init_Students(students);
     Fill_Students(students);
-    // Print_Students(students);
 
     // Initializing a course structure
     Course_t courses[numCourses];
     Init_Courses(courses);
     Fill_Courses(courses);
-    // Print_Courses(courses);
 
     // Initializing system
     SystemEntry_t studentSystem[numCourses][numStudents];
     Init_System(studentSystem);
-    // Print_System(studentSystem);
 
     // Handling the queries
     char query[MAX_QUERY_LENGTH] = { NULL_CHARACTER };
@@ -384,8 +384,6 @@ int main(){
         int wordCount = Splice_String(query, MAX_WORDS_IN_QUERY, MAX_QUERY_LENGTH, splicedQuery);
 
         char *command = splicedQuery[0];
-        // printf("command: %s\n", command);
-
         bool enrollCommand = (strcmp("enroll", command) == STRCMP_EQUAL);
         bool unenrollCommand = (strcmp("unenroll", command) == STRCMP_EQUAL);
         bool gradeCommand = (strcmp("grade", command) == STRCMP_EQUAL);
@@ -406,8 +404,6 @@ int main(){
             int studentIndex = Get_StudentIndex(students, firstName, lastName);
             int courseIndex = Get_CourseIndex(courses, courseName);
 
-            // printf("un/enroll: %s %s %s\n", firstName, lastName, courseName);
-            // printf("un/enroll: %d %d\n", studentIndex, courseIndex);
             if(enrollCommand) Enroll_Student(studentSystem, courseIndex, studentIndex);
             if(unenrollCommand) UnEnroll_Student(studentSystem, courseIndex, studentIndex);
         }
@@ -421,8 +417,7 @@ int main(){
             int courseIndex = Get_CourseIndex(courses, courseName);
             int grade = Convert_StringToInt(splicedQuery[wordCount-1]);
 
-            // printf("grade: %s %s %s %d\n", firstName, lastName, courseName, grade);
-            // printf("grade: %d %d\n", studentIndex, courseIndex);
+            Update_TopGrade(courses, courseIndex, grade);
             Grade_Student(studentSystem, courseIndex, studentIndex, grade);
         }
         else if((aveCommand || countCommand || topStudentCommand) && wordCount >= 2){
@@ -430,7 +425,6 @@ int main(){
             Merge_String(1, wordCount-1, MAX_QUERY_LENGTH, splicedQuery, MAX_COURSE_NAME_LENGTH, courseName);
             int courseIndex = Get_CourseIndex(courses, courseName);
 
-            // printf("ave, count, topstudent: %s\n", courseName);
             if(aveCommand){
                 float courseAvg = Get_CourseAvg(studentSystem, courseIndex);
                 if(courseAvg == INVALID) printf("0\n");
@@ -440,50 +434,31 @@ int main(){
             if(countCommand) printf("%d\n", Get_NumStudentsEnrolled(studentSystem, courseIndex));
 
             if(topStudentCommand){
-                int topStudentIds[numStudents];
-                int numTopStudents = Get_TopStudentsInCourse(studentSystem, courseIndex, topStudentIds);
-                if(numTopStudents == 0) printf("N/A\n");
-                else Print_StudentsWithId(students, numTopStudents, topStudentIds, PRINT_LAST_NAME);
+                int topGrade = Get_CourseTopGrade(courses, courseIndex);
+                Print_TopStudentsInCourse(studentSystem, students, courseIndex, topGrade);
             }
         }
         else if((gpaCommand || findMutualCommand || listCoursesCommand) && wordCount >= 3){
             char *firstName = splicedQuery[1];
             char *lastName = splicedQuery[2];
-
             int studentIndex = Get_StudentIndex(students, firstName, lastName);
 
-            // printf("gpa, findmutual, listcourses: %s %s\n", firstName, lastName);
             if(gpaCommand){
                 float studentGpa = Get_StudentAvg(studentSystem, studentIndex);
                 if(studentGpa == INVALID) printf("0\n");
                 else printf("%0.2f\n", studentGpa);
             }
 
-            if(findMutualCommand){
-                int mutualStudentIds[numStudents];
-                int numMutualStudents = Get_StudentsInMutualCourses(studentSystem, studentIndex, mutualStudentIds);
-                if(numMutualStudents == 0) printf("N/A\n");
-                else Print_StudentsWithId(students, numMutualStudents, mutualStudentIds, PRINT_LAST_NAME);
-            }
+            if(findMutualCommand) Print_StudentsInMutualCourses(studentSystem, students, studentIndex);
 
-            if(listCoursesCommand){
-                int courseIds[numCourses];
-                int numEnrolledCourses = Get_CoursesEnrolled(studentSystem, studentIndex, courseIds);
-                if(numEnrolledCourses == 0) printf("N/A\n");
-                else Print_CoursesWithId(courses, numEnrolledCourses, courseIds);
-            }
+            if(listCoursesCommand) Print_CoursesEnrolled(studentSystem, courses, studentIndex);
         }
         else if(findFirstNamesCommand && wordCount >= 2){
             char *lastName = splicedQuery[1];
-            int studentIds[numStudents];
-            int numStudentsWithLastName = Get_StudentsWithLastName(students, lastName, studentIds);
-            if(numStudentsWithLastName == 0) printf("N/A\n");
-            else Print_StudentsWithId(students, numStudentsWithLastName, studentIds, DO_NOT_PRINT_LAST_NAME);
+            Print_StudentsWithLastName(students, lastName);
         }
 
-        // Print_System(studentSystem);
     } while(strcmp("quit", splicedQuery[0]) != STRCMP_EQUAL);
-
 
     return 0;
 }
