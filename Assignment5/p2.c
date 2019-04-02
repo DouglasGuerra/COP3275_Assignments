@@ -9,14 +9,14 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define MAX_NODES 20
+#define MAX_NEIGHBORS 21
 
 // Node structure
 struct Node_t {
     int value;
     bool visited;
     int numNeighbors;
-    struct Node_t *neighbors[MAX_NODES];
+    struct Node_t *neighbors[MAX_NEIGHBORS];
 };
 typedef struct Node_t Node;
 
@@ -37,26 +37,23 @@ int Get_SumOfConnectedNodes(Node *node){
     return sum;
 }
 
-void Print_Nodes(int numNodes, const Node *nodes[]){
-    int nodeIndex;
-    for(nodeIndex = 0; nodeIndex < numNodes; nodeIndex++){
-        printf("node %d, at location: %p, with value: %d, num neighbors: %d, neighbors: \n", nodeIndex, nodes[nodeIndex], nodes[nodeIndex]->value, nodes[nodeIndex]->numNeighbors);
-        int j;
-        for(j = 0; j < nodes[nodeIndex]->numNeighbors; j++){
-            printf("node at location: %p\n", nodes[nodeIndex]->neighbors[j]);
+bool AreNeighbors(Node *node1, Node *node2){
+    int i;
+    for(i = 0; i < node1->numNeighbors; i++){
+        if(node1->neighbors[i] == node2){
+            return true;
         }
-        printf("\n");
     }
+    return false;
 }
 
 int main(){
 
     // Getting the number of nodes and edges in the graph
     int numNodes, numEdges;
-    Node *nodes[MAX_NODES];
-
     scanf("%d %d", &numNodes, &numEdges);
-    printf("%d, %d\n", numNodes, numEdges);
+
+    Node *nodes[numNodes];
 
     // Filling initial node values as provided by input
     int nodeIndex, nodeValue;
@@ -72,11 +69,20 @@ int main(){
     Node *tempStartNode, *tempEndNode;
     for(nodeIndex = 0; nodeIndex < numEdges; nodeIndex++){
         scanf(" %d %d", &startNode, &endNode);
-        tempStartNode = nodes[startNode];
-        tempEndNode = nodes[endNode];
+        if(startNode >= 0 && startNode < numNodes && endNode >= 0 && endNode < numNodes && startNode != endNode){
+            tempStartNode = nodes[startNode];
+            tempEndNode = nodes[endNode];
 
-        tempStartNode->neighbors[tempStartNode->numNeighbors] = tempEndNode;
-        tempStartNode->numNeighbors += 1;
+            if(!AreNeighbors(tempStartNode, tempEndNode) && tempStartNode->numNeighbors < MAX_NEIGHBORS){
+                tempStartNode->neighbors[tempStartNode->numNeighbors] = tempEndNode;
+                tempStartNode->numNeighbors += 1;
+            }
+
+            if(!AreNeighbors(tempEndNode, tempStartNode) && tempEndNode->numNeighbors < MAX_NEIGHBORS){
+                tempEndNode->neighbors[tempEndNode->numNeighbors] = tempStartNode;
+                tempEndNode->numNeighbors += 1;
+            }
+        }
     }
 
     // Iterating through nodes to get the sum of connected components
@@ -89,11 +95,7 @@ int main(){
             printf("%d", Get_SumOfConnectedNodes(nodes[nodeIndex]));
         }
     }
-
-    // Freeing up memory
-    for(nodeIndex = 0; nodeIndex < numNodes; nodeIndex++){
-        free(nodes[nodeIndex]);
-    }
+    printf("\n");
 
     return 0;
 }
