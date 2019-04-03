@@ -173,19 +173,15 @@ void Init_System(Entry_t managementSystem[numCourses][numStudents]){
 
 void Enroll_Student(Entry_t managementSystem[numCourses][numStudents], int courseIndex, int studentIndex){
     if(courseIndex != INVALID && studentIndex != INVALID){
-        if(!managementSystem[courseIndex][studentIndex].enrolled){
-            managementSystem[courseIndex][studentIndex].enrolled = true;
-            managementSystem[courseIndex][studentIndex].grade = INVALID;
-        }
+        managementSystem[courseIndex][studentIndex].enrolled = true;
+        managementSystem[courseIndex][studentIndex].grade = INVALID;
     }
 }
 
 void Unenroll_Student(Entry_t managementSystem[numCourses][numStudents], int courseIndex, int studentIndex){
     if(courseIndex != INVALID && studentIndex != INVALID){
-        if(managementSystem[courseIndex][studentIndex].enrolled){
-            managementSystem[courseIndex][studentIndex].enrolled = false;
-            managementSystem[courseIndex][studentIndex].grade = INVALID;
-        }
+        managementSystem[courseIndex][studentIndex].enrolled = false;
+        managementSystem[courseIndex][studentIndex].grade = INVALID;
     }
 }
 
@@ -279,7 +275,7 @@ void Print_TopStudentsInCourse(Entry_t studentSystem[numCourses][numStudents], S
 }
 
 void Print_StudentsInMutualCourses(Entry_t studentSystem[numCourses][numStudents], Student_t students[], int studentIndex){
-    bool foundStudent = false;;
+    bool foundStudent = false;
     int storeIndex = 0;
     if(studentIndex != INVALID){
         int courseIndex, index;
@@ -315,7 +311,6 @@ void Print_System(Entry_t managementSystem[numCourses][numStudents]){
 }
 
 int main(){
-
     // Getting inputs regarding size
     scanf("%d", &numStudents);
     scanf("%d", &numCourses);
@@ -385,6 +380,7 @@ int main(){
             int studentIndex = Get_StudentIndex(students, studentFirstName, studentLastName);
             int courseIndex = Get_CourseIndex(courses, courseName);
 
+            Update_TopGrade(courses, courseIndex, grade);
             Grade_Student(managementSystem, courseIndex, studentIndex, grade);
         }
         else if(aveCommand || countCommand || topStudentCommand){
